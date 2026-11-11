@@ -38,3 +38,10 @@ Validation URL được chọn làm cải tiến: sau khi `get_incident_details`
 - Free/rate-limited provider cần chạy lại sau khi quota reset hoặc dùng model/quota phù hợp.
 
 CP6 dùng đúng config CP4: Gemini `models/gemini-flash-lite-latest`, judge cùng model, `max_steps=8`, `workers=1`. Kết quả: 8/22 scored, 14/22 unscored do rate limit; `partial_mean_0_100` là 100.0 nhưng không phải điểm cuối.
+
+## 6. Kiểm tra thông tin nhạy cảm trước khi nộp
+
+- Đã rà soát `agent.py`, `eval_before.json` và `eval_after.json` với các pattern API key, token, Bearer header và tên biến secret; không phát hiện credential.
+- Các URL xuất hiện trong eval là URL nguồn status công khai và incident snapshot, không phải secret.
+- `.env` chứa API key nhưng nằm trong `.gitignore`, không được đưa vào commit.
+- Không đưa request header, response credential hoặc nội dung key vào trace/eval artifact.
