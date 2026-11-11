@@ -90,6 +90,17 @@ python3 evals/run_evals.py --output eval_after.json
 
 Snapshot bài chính được lưu ngày 09/11/2026; snapshot của ba API bổ sung được lưu ngày 10/11/2026. Không dùng nó để trả lời tình trạng hiện tại trong thực tế. Khi chạy live, API có thể rate limit, timeout hoặc thay đổi dữ liệu.
 
+### OpenRouter
+
+Project dùng OpenRouter qua provider `openrouter`. Trên PowerShell:
+
+```powershell
+$env:PROVIDER = "openrouter"
+$env:MODEL = "deepseek/deepseek-chat-v3-0324:free"
+$env:OPENROUTER_API_KEY = "<api-key>"
+python run.py "GitHub Actions hiện có sự cố không?"
+```
+
 ## Tài liệu tham khảo: làm việc với coding agent
 
 Các tài liệu dưới đây giúp bạn tham khảo cách tổ chức việc viết code với AI; **không phải task của lab và không cần cài đặt để hoàn thành bài**.
@@ -106,3 +117,13 @@ Trong bài lab, *agent loop* là vòng LLM → tool → kết quả. Khi dùng c
 | Thiết kế môi trường | [OpenAI: Harness engineering](https://openai.com/index/harness-engineering/) | Vai trò của tests, feedback và môi trường khi giao công việc cho coding agent. |
 
 Nếu thử workflow tự động, hãy đặt giới hạn lượt chạy hoặc chi phí, có điều kiện dừng và tự kiểm tra kết quả. Tests pass là bằng chứng hữu ích, nhưng vẫn cần xem code và đối chiếu yêu cầu. Đọc kỹ quyền và hướng dẫn của từng công cụ trước khi cài hoặc chạy plugin/hook.
+
+## Web demo local
+
+Chạy demo bằng Python standard library, không cần cài thêm package:
+
+```powershell
+python web_demo.py
+```
+
+Mở `http://127.0.0.1:8000`. Demo có câu hỏi gợi ý liên quan/không liên quan, chọn snapshot hoặc live, bật bonus để dùng 5 provider bổ sung và pagination, kết quả agent và trace tool. API key chỉ được dùng ở server local, không gửi xuống trình duyệt. Có thể đổi cổng bằng `python web_demo.py --port 8080`.

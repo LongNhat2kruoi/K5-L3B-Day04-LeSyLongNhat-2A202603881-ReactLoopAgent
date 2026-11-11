@@ -13,6 +13,24 @@ from grading import grade_case, summarize, bonus_points
 from bonus.tools import BonusTools
 
 
+def load_local_env():
+    env_path = Path(__file__).resolve().parents[1] / '.env'
+    if not env_path.exists():
+        return
+    try:
+        for line in env_path.read_text(encoding='utf-8').splitlines():
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            name, value = line.split('=', 1)
+            name = name.strip().removeprefix('$env:').removeprefix('export ').strip()
+            value = value.strip().strip('"').strip("'")
+            if name and value and name not in os.environ:
+                os.environ[name] = value
+    except OSError:
+        pass
+
+
 def run_case(case, args):
     try:
         result = run_agent(case['question'], Provider(args.provider, args.model),
@@ -32,10 +50,11 @@ def run_case(case, args):
 
 
 def main():
+    load_local_env()
     parser = argparse.ArgumentParser(description='Chạy agent và chấm eval 0–100')
-    choices = ['openai', 'gemini', 'anthropic', 'openrouter']
-    parser.add_argument('--provider', choices=choices, default=os.getenv('PROVIDER', 'openai'))
-    parser.add_argument('--model', default=os.getenv('MODEL'))
+    choices = ['openai', 'gemini', 'anthropic', 'openrouter', 'opencode', 'grok', 'xai']
+    parser.add_argument('--provider', choices=choices, default=os.getenv('PROVIDER', 'openrouter'))
+    parser.add_argument('--model', default=os.getenv('MODEL') or os.getenv('API_MODEL'))
     parser.add_argument('--judge-provider', choices=choices, default=os.getenv('JUDGE_PROVIDER'))
     parser.add_argument('--judge-model', default=os.getenv('JUDGE_MODEL'))
     parser.add_argument('--bonus', action='store_true', help='Chạy bộ bonus riêng; không ảnh hưởng điểm chính')

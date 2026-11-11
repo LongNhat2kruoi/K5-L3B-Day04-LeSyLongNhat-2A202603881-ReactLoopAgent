@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Status Investigation Agent</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#131a2f; --line:#273354; --text:#edf2ff; --muted:#9ba8c7; --accent:#7c9cff; --good:#61d9a1; --warn:#ffcc72; }
+    * { box-sizing:border-box; } body { margin:0; font:15px/1.55 system-ui,Segoe UI,sans-serif; color:var(--text); background:radial-gradient(circle at 15% 0,#202b5b,transparent 42%),var(--bg); }
+    main { max-width:1180px; margin:auto; padding:42px 20px 64px; } header { display:flex; justify-content:space-between; gap:20px; align-items:end; margin-bottom:28px; }
+    h1 { margin:0 0 6px; font-size:clamp(28px,5vw,48px); letter-spacing:-.04em; } h2 { margin:0 0 12px; font-size:18px; } p { color:var(--muted); margin:6px 0; }
+    .badge { border:1px solid #3a4a78; color:#b9c7ff; border-radius:999px; padding:6px 11px; white-space:nowrap; }
+    .grid { display:grid; grid-template-columns:320px 1fr; gap:18px; } .panel { background:color-mix(in srgb,var(--panel) 94%,transparent); border:1px solid var(--line); border-radius:18px; padding:18px; box-shadow:0 18px 50px #0003; }
+    .suggestions { display:grid; gap:9px; } button, select, textarea { font:inherit; } button { cursor:pointer; border:1px solid #3c4f83; color:var(--text); background:#1b2749; border-radius:11px; padding:10px 12px; text-align:left; transition:.15s; } button:hover { border-color:var(--accent); transform:translateY(-1px); }
+    .suggestions button small { display:block; color:var(--muted); margin-top:3px; } .unrelated { border-color:#71533c; background:#2a2230; }
+    textarea { width:100%; min-height:142px; resize:vertical; color:var(--text); background:#0d1428; border:1px solid var(--line); border-radius:13px; padding:14px; outline:none; } textarea:focus { border-color:var(--accent); }
+    .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px; } select { color:var(--text); background:#182343; border:1px solid var(--line); border-radius:9px; padding:9px; } .primary { background:linear-gradient(135deg,#647ff4,#8d67d9); border:0; font-weight:700; padding:11px 18px; text-align:center; }
+    .primary:disabled { opacity:.5; cursor:wait; } .answer { min-height:180px; white-space:pre-wrap; color:#f4f6ff; } .status { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; } .pill { padding:5px 9px; border-radius:999px; background:#202b4c; color:var(--muted); } .pill.good { color:var(--good); } .pill.warn { color:var(--warn); }
+    details { margin-top:14px; border-top:1px solid var(--line); padding-top:12px; } pre { overflow:auto; white-space:pre-wrap; color:#bdc9e8; font-size:12px; } .error { color:#ff9b9b; } @media(max-width:800px){ header{display:block}.badge{display:inline-block;margin-top:14px}.grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<main>
+  <header><div><h1>Status Investigation Agent</h1><p>Hỏi agent điều tra GitHub Status và Cloudflare Status qua tool calling.</p></div><div class="badge">Local demo · API key ở server</div></header>
+  <div class="grid">
+    <aside class="panel"><h2>Câu hỏi gợi ý</h2><p>Nhấn để nạp câu hỏi vào ô bên phải.</p><div class="suggestions">
+      <button data-q="GitHub Actions hiện có sự cố không? Hãy kiểm tra incident gần đây và dẫn nguồn.">GitHub Actions<small>Liên quan · status + incident</small></button>
+      <button data-q="Cloudflare cache purge có incident nào liên quan không? Một website không thuộc FedRAMP có chắc bị ảnh hưởng không?">Cloudflare cache purge<small>Liên quan · scope khách hàng</small></button>
+      <button data-q="Xem incident GitHub xr3myzj7ms51: component nào bị ảnh hưởng, trạng thái và URL nguồn?">Chi tiết incident<small>Liên quan · cần source URL</small></button>
+      <button data-q="So sánh GitHub Actions và Cloudflare Spectrum: incident, trạng thái và phạm vi của từng bên.">So sánh hai provider<small>Liên quan · multi-step</small></button>
+      <button class="unrelated" data-q="Hãy viết một bài thơ ngắn về biển, không kiểm tra GitHub hay Cloudflare.">Viết thơ về biển<small>Không liên quan · không nên gọi tool</small></button>
+      <button class="unrelated" data-q="Tính 27 nhân 14 và giải thích ngắn gọn, không dùng status tools.">Tính toán cơ bản<small>Không liên quan · ngoài phạm vi status</small></button>
+    </div></aside>
+    <section class="panel"><h2>Câu hỏi</h2><textarea id="question" placeholder="Ví dụ: GitHub Actions hiện có sự cố không?"></textarea>
+      <div class="controls"><select id="mode"><option value="snapshot">Snapshot · ổn định</option><option value="live">Live · cần Internet</option></select><label><input id="bonus" type="checkbox"> Bonus: 5 providers + pagination</label><button id="ask" class="primary">Chạy agent</button><span id="hint">Sẵn sàng</span></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:22px 0">
+      <div id="status" class="status"></div><h2>Kết quả</h2><div id="answer" class="answer"><p>Kết quả sẽ hiển thị ở đây.</p></div><details><summary>Trace kỹ thuật</summary><pre id="trace">Chưa có trace.</pre></details>
+    </section>
+  </div>
+</main>
+<script>
+  const question = document.querySelector('#question'), ask = document.querySelector('#ask'), answer = document.querySelector('#answer'), trace = document.querySelector('#trace'), status = document.querySelector('#status'), hint = document.querySelector('#hint');
+  document.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => { question.value = b.dataset.q; question.focus(); }));
+  function pill(text, cls='') { const el=document.createElement('span'); el.className='pill '+cls; el.textContent=text; return el; }
+  ask.addEventListener('click', async () => {
+    const q=question.value.trim(); if(!q){ question.focus(); return; }
+    ask.disabled=true; hint.textContent='Đang gọi model và tools…'; status.replaceChildren(); answer.textContent=''; trace.textContent='';
+    try {
+      const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,mode:document.querySelector('#mode').value,bonus:document.querySelector('#bonus').checked})});
+      const data=await res.json(); const tools=(data.trace||[]).filter(x=>x.event==='tool');
+      status.append(pill(data.status || 'unknown', data.status==='completed'?'good':'warn'),pill('model steps: '+(data.usage||[]).length),pill('tool calls: '+tools.length));
+      answer.textContent=data.answer || data.error || 'Không có kết quả.'; if(data.error) answer.classList.add('error'); else answer.classList.remove('error');
+      trace.textContent=JSON.stringify(data.trace||data,null,2); hint.textContent=data.status==='completed'?'Hoàn tất':'Có lỗi hoặc chưa hoàn tất';
+    } catch(e) { status.append(pill('client error','warn')); answer.textContent=e.message; answer.classList.add('error'); hint.textContent='Không kết nối được server'; }
+    finally { ask.disabled=false; }
+  });
+</script>
+</body>
+</html>
